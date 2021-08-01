@@ -19,7 +19,7 @@ export class ApiService {
    * @param  uri :uri for requested resource
    * @return     observable
    */
-  get(uri: string) {
+  get(uri: String) {
     return this.http.get(environment.api_endpoint_base + uri);
   }
 }

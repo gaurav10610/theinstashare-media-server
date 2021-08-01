@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { LoggerUtil } from '../logging/LoggerUtil';
 import { ApiService } from '../api/api.service';
-import { AppConstants } from '../AppConstants';
+import { ServerConstants } from '../ServerConstants';
 import * as io from '../../../assets/js/socket.io.js';
 
 @Injectable({
@@ -16,19 +16,14 @@ export class SignalingService {
     this.signalingRouter = io(environment.rtc_api_endpoint_base);
   }
 
-  /**
-   * Unique socket id assigned to socket connection and will subsequently
-   * be used to identify user's rtc connection for further communication
-   */
-  public static socketId = false;
-
-  /* Registered flag that will keep track whether user
+  /* 
+   * registered flag that will keep track whether user
    * is registered with signaling server or not
    */
-  isRegistered = false;
+  isRegistered: Boolean = false;
 
   /*
-   * For now it's a websocket connection to the signaling server
+   * for now it's a websocket connection to the signaling server
    */
   signalingRouter: any;
 
@@ -87,15 +82,11 @@ export class SignalingService {
    * @param username :username for signaling server to register with
    * @param validateUser: whether to validate user or not
    */
-  async registerOnSignalingServer(username: string, validateUser: boolean) {
+  async registerOnSignalingServer(username: String, validateUser: Boolean) {
     if (validateUser) {
       const isNotValid = await this.validateUserName(username);
       if (isNotValid) {
-        /**
-         * 
-         * @TODO: do something here if username already exist
-         * 
-         */
+       LoggerUtil.log('registration with signaling server fails');
       } else {
         this.registerUser(username);
       }
@@ -115,7 +106,7 @@ export class SignalingService {
      * logout
      */
     this.sendPayload({
-      type: AppConstants.DEREGISTER,
+      type: ServerConstants.DEREGISTER,
       from: username,
       to: username
     });
@@ -128,7 +119,7 @@ export class SignalingService {
    * @param  username :username of the user to be validated
    * @return promise
    */
-  validateUserName(username: string) {
+  validateUserName(username: String) {
     return new Promise(async (resolve, reject) => {
       try {
         if (username && username !== '') {
@@ -149,9 +140,9 @@ export class SignalingService {
    * @param  username : username to register
    * @return
    */
-  private registerUser(username: string) {
+  private registerUser(username: String) {
     this.sendPayload({
-      type: AppConstants.REGISTER,
+      type: ServerConstants.REGISTER,
       from: username,
       to: username,
       socketId: this.signalingRouter.id,

@@ -2,7 +2,9 @@
  * This contains all global constants of Peer-Talk
  *
  **/
-export class AppConstants {
+export class ServerConstants {
+
+  public static SERVER_NAME = 'media-server';
 
   public static DATACHANNEL = 'dataChannel';
 
