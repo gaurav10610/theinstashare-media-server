@@ -1,11 +1,16 @@
 import { Component } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { ElectronService } from 'ngx-electron';
-import { SignalingMessageType } from './services/contracts/enum/SignalingMessageType';
-import { BaseSignalingMessageType } from './services/contracts/signaling/BaseSignalingMessageType';
+import { SignalingMessageType } from './services/types/enum/SignalingMessageType';
 import { LoggerUtil } from './services/logging/LoggerUtil';
 import { ServerConstants } from './services/ServerConstants';
 import { SignalingService } from './services/signaling/signaling.service';
+import { BaseSignalingMessage } from './services/types/signaling/BaseSignalingMessage';
+import { AnswerSignalingMessage } from './services/types/signaling/AnswerSignalingMessage';
+import { CandidateSignalingMessage } from './services/types/signaling/CandidateSignalingMessage';
+import { OfferSignalingMessage } from './services/types/signaling/OfferSignalingMessage';
+import { RegisterSignalingMessage } from './services/types/signaling/RegisterSignalingMessage';
+import { CoreWebrtcService } from './services/webrtc/core-webrtc.service';
 
 @Component({
   selector: 'app-root',
@@ -16,7 +21,8 @@ export class AppComponent {
   constructor(
     private translate: TranslateService,
     private electronService: ElectronService,
-    private signalingService: SignalingService
+    private signalingService: SignalingService,
+    private coreWebrtcService: CoreWebrtcService
   ) {
     this.translate.setDefaultLang('en');
     LoggerUtil.log(this.electronService.isElectronApp ? 'this is an electron application' : 'this is a web application');
@@ -37,36 +43,34 @@ export class AppComponent {
   }
 
   /**
- * handler to handle messages received via server or via webrtc datachannel
- *
- *
- * while sending any message to other user app gives first priority to existing
- * datachannel between two users to exchange any messages(see the existing
- * supported message types below) between them if it found one else it will
- * send the messages to other user via signaling server only
- *
- *
- * @param signalingMessage received signaling message
- *
- */
-  async onRouterMessage(signalingMessage: BaseSignalingMessageType) {
+   * handler to handle messages received via server or via webrtc datachannel
+   * 
+   * while sending any message to other user app gives first priority to existing
+   * datachannel between two users to exchange any messages(see the existing
+   * supported message types below) between them if it found one else it will
+   * send the messages to other user via signaling server only
+   *
+   * @param signalingMessage received signaling message
+   *
+   */
+  async onRouterMessage(signalingMessage: any) {
     try {
       LoggerUtil.log('received message via ' + signalingMessage.via + ': ' + JSON.stringify(signalingMessage));
       switch (signalingMessage.type) {
         case SignalingMessageType.REGISTER:
-          await this.handleRegister(signalingMessage);
+          await this.handleRegister(<RegisterSignalingMessage>signalingMessage);
           break;
 
         case SignalingMessageType.OFFER:
-          //await this.consumeWebrtcOffer(signalingMessage);
+          await this.consumeWebrtcOffer(<OfferSignalingMessage>signalingMessage);
           break;
 
         case SignalingMessageType.ANSWER:
-          //await this.coreWebrtcService.handleAnswer(signalingMessage);
+          await this.coreWebrtcService.handleAnswer(<AnswerSignalingMessage>signalingMessage);
           break;
 
         case SignalingMessageType.CANDIDATE:
-          //await this.coreWebrtcService.handleCandidate(signalingMessage);
+          await this.coreWebrtcService.handleCandidate(<CandidateSignalingMessage>signalingMessage);
           break;
 
         case SignalingMessageType.DISCONNECT:
@@ -88,7 +92,7 @@ export class AppComponent {
  * @param signalingMessage received signaling message
  * 
  */
-  handleRegister(signalingMessage: any) {
+  handleRegister(signalingMessage: RegisterSignalingMessage) {
     return new Promise<void>((resolve) => {
       if (signalingMessage.success) {
 
@@ -115,6 +119,28 @@ export class AppComponent {
         LoggerUtil.log('registration with signaling server server failed for some reason');
       }
       resolve();
+    });
+  }
+
+  /**
+   * this will process received messages of type 'offer'
+   *
+   * @param signalingMessage: received signaling message
+   */
+  async consumeWebrtcOffer(signalingMessage: OfferSignalingMessage): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      try {
+        /**
+         * 
+         * @TODO implement it here
+         * 
+         * 
+         */
+        resolve();
+      } catch (e) {
+        LoggerUtil.log('there is an error while consuming webrtc offer received from ' + signalingMessage.from);
+        reject(e);
+      }
     });
   }
 }

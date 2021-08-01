@@ -1,6 +1,7 @@
 import { UserType } from "./enum/UserType";
+import { ConnectionStatesType } from "./enum/ConnectionStatesType";
 
-export interface UserContextType {
+export interface UserContext {
 
     //registered username of the user
     username: String;
@@ -28,4 +29,10 @@ export interface UserContextType {
 
     //user group - name of the user group
     userGroup: String;
+
+    //webrtc connection state
+    webrtcConnectionState: ConnectionStatesType;
+
+    //webrtc data channel state
+    dataChannelConnectionState: ConnectionStatesType
 }

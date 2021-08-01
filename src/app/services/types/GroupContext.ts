@@ -1,4 +1,4 @@
-export interface GroupContextType {
+export interface GroupContext {
     //group name
     groupName: String;
 

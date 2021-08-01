@@ -1,6 +1,7 @@
 import { SignalingMessageType } from '../enum/SignalingMessageType';
+import { MediaChannelType } from '../enum/MediaChannelType';
 
-export interface BaseSignalingMessageType {
+export interface BaseSignalingMessage {
     //username of the sender
     from: String;
 
@@ -15,5 +16,8 @@ export interface BaseSignalingMessageType {
      * routed/received via signaling router or via webrtc data channel
      * 
      */
-    via: String;
+    via?: String;
+
+    // media channel i.e - 'audio', 'video' or 'text'
+    channel: MediaChannelType;
 }
