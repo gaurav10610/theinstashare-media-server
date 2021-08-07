@@ -3,13 +3,56 @@ import { ServerConstants } from '../ServerConstants';
 import { MediaChannelType } from '../types/enum/MediaChannelType';
 import { UserContext } from '../types/UserContext';
 import { ConnectionStatesType } from '../types/enum/ConnectionStatesType';
+import { ServerContextService } from '../context/server-context.service';
+import { CoreDataChannelService } from '../data-channel/core-data-channel.service';
+import { BaseDataChannelMessage } from '../types/BaseDataChannelMessage';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CoreServerUtilityService {
 
-  constructor() { }
+  constructor(
+    private serverContextService: ServerContextService,
+    private coreDataChannelService: CoreDataChannelService
+  ) { }
+
+  /**
+   * this will send an acknowledgement for a received message along with a status
+   * like 'seen' or 'delivered'
+   *
+   * @param message received message
+   *
+   * @param messageStatus status of the message
+   *
+   * @param channel media type for the data channel i.e the type of data being
+   * relayed on this data channel
+   *
+   * @TODO add a new contract for acknowledgement afterwards for type checking
+   */
+  async sendMessageAcknowledgement(message: BaseDataChannelMessage, messageStatus: string, channel: MediaChannelType) {
+    const ackId: Number = await this.generateIdentifier();
+    const isAckSent: Boolean = await this.coreDataChannelService.sendMessageOnDataChannel({
+      id: String(ackId),
+      status: messageStatus,
+      username: this.serverContextService.servername,
+      type: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT,
+      time: new Date().getTime(),
+      messageType: message.type,
+      messageId: message.id,
+      to: message.username,
+      from:this.serverContextService.servername
+    }, channel);
+
+    if (isAckSent) {
+      if (message.id) {
+        LoggerUtil.log('acknowledgement sent for message with id: ' + message.id + ' from '
+          + message[AppConstants.USERNAME]);
+      } else {
+        LoggerUtil.log('error while sending acknowledgement for: ' + JSON.stringify(message));
+      }
+    }
+  }
 
   /**
    * check if there is an open data channel with a user using it's provided webrtc
@@ -139,5 +182,21 @@ export class CoreServerUtilityService {
    */
   checkMember(value: any, array: any[]): Boolean {
     return array.indexOf(value) > -1;
+  }
+
+  /**
+   * convert string value to Enum
+   * 
+   * @param value
+   * @param enumName 
+   * @returns 
+   */
+  stringToEnum(value: String, enumName: any): any {
+    for (let key in enumName) {
+      if (value === enumName[key]) {
+        return key;
+      }
+    }
+    return undefined;
   }
 }

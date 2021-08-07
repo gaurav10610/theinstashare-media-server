@@ -3,5 +3,7 @@ export enum SignalingMessageType {
     OFFER = 'offer',
     ANSWER = 'answer',
     CANDIDATE = 'candidate',
-    DISCONNECT = 'disconnect'
+    DISCONNECT = 'disconnect',
+    SIGNALING = 'signal',
+    WEBRTC_EVENT = 'rtcEvent'
 }

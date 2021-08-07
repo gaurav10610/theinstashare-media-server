@@ -25,28 +25,24 @@ export class CoreWebrtcService {
    * @param username username of the user with whom connection has to be established
    *
    */
-  rtcConnectionInit(username: String, userType: UserType, userGroup: String): Promise<UserContext> {
-    return new Promise<UserContext>((resolve, reject) => {
+  rtcConnectionInit(username: String): Promise<Boolean> {
+    return new Promise<Boolean>((resolve, reject) => {
       try {
+        let initializedConnection: Boolean = false;
+        const PeerConnection = RTCPeerConnection || webkitRTCPeerConnection;
+        const userContext: UserContext = this.serverContextService.getUserContext(username);
+
         /**
          * 
-         * initialize user context here 
+         * @TODO Fix this flow afterwards  
          * 
          */
-        this.serverContextService.usersContext.set(username, {
-          username: username,
-          connection: new RTCPeerConnection(ServerConstants.STUN_CONFIG),
-          audioTrack: null,
-          videoTrack: null,
-          dataChannel: null,
-          firstConnectedAt: new Date(),
-          lastConnectedAt: new Date(),
-          userType: userType,
-          userGroup: userGroup,
-          webrtcConnectionState: ConnectionStatesType.NOT_CONNECTED,
-          dataChannelConnectionState: ConnectionStatesType.NOT_CONNECTED
-        });
-        resolve(this.serverContextService.getUserContext(username));
+        if (userContext.webrtcConnectionState as ConnectionStatesType === ConnectionStatesType.NOT_CONNECTED) {
+          initializedConnection = true;
+          //initialize a new webrtc peer connection
+          userContext.connection = new PeerConnection(ServerConstants.STUN_CONFIG);
+        }
+        resolve(initializedConnection);
       } catch (error) {
         LoggerUtil.log(error);
         reject('there is an error while initializing peer connection');

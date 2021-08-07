@@ -1,5 +1,6 @@
 import { UserType } from "./enum/UserType";
 import { ConnectionStatesType } from "./enum/ConnectionStatesType";
+import { QueueStorage } from '../util/QueueStorage';
 
 export interface UserContext {
 
@@ -28,11 +29,17 @@ export interface UserContext {
     userType: UserType;
 
     //user group - name of the user group
-    userGroup: String;
+    userGroup?: String;
 
     //webrtc connection state
     webrtcConnectionState: ConnectionStatesType;
 
     //webrtc data channel state
-    dataChannelConnectionState: ConnectionStatesType
+    dataChannelConnectionState: ConnectionStatesType;
+
+    //queue for storing function calls to execute on webrtc connection on connect event
+    webrtcOnConnectQueue: QueueStorage;
+
+    //queue for storing data channel messages
+    msgQueue: QueueStorage;
 }

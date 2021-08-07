@@ -82,17 +82,20 @@ export class SignalingService {
    * @param username :username for signaling server to register with
    * @param validateUser: whether to validate user or not
    */
-  async registerOnSignalingServer(username: String, validateUser: Boolean) {
-    if (validateUser) {
-      const isNotValid = await this.validateUserName(username);
-      if (isNotValid) {
-       LoggerUtil.log('registration with signaling server fails');
+  async registerOnSignalingServer(username: String, validateUser: Boolean): Promise<void> {
+    return new Promise(async (resolve) => {
+      if (validateUser) {
+        const isNotValid = await this.validateUserName(username);
+        if (isNotValid) {
+          LoggerUtil.log('registration with signaling server fails');
+        } else {
+          this.registerUser(username);
+        }
       } else {
         this.registerUser(username);
       }
-    } else {
-      this.registerUser(username);
-    }
+      resolve();
+    });
   }
 
   /**

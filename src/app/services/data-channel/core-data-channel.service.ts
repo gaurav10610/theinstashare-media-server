@@ -7,6 +7,8 @@ import { BaseSignalingMessage } from '../types/signaling/BaseSignalingMessage';
 import { CoreServerUtilityService } from '../util/core-server-utility.service';
 import { MediaChannelType } from '../types/enum/MediaChannelType';
 import { UserContext } from '../types/UserContext';
+import { SignalingMessageType } from '../types/enum/SignalingMessageType';
+import { BaseDataChannelMessage } from '../types/BaseDataChannelMessage';
 
 @Injectable({
   providedIn: 'root'
@@ -42,7 +44,7 @@ export class CoreDataChannelService {
       this.sendMessageOnDataChannel({
         from: signalingMessage.from,
         to: signalingMessage.to,
-        type: ServerConstants.SIGNALING,
+        type: MediaChannelType.SIGNALING,
         message: signalingMessage
       }, MediaChannelType.TEXT);
     } else {
@@ -67,14 +69,18 @@ export class CoreDataChannelService {
    * or 'audio'
    * 
    */
-  sendMessageOnDataChannel(jsonMessage: any, channel: MediaChannelType) {
-    try {
-      const userContext: UserContext = this.serverContextService.getUserContext(jsonMessage.to);
-      userContext.dataChannel.send(JSON.stringify(jsonMessage));
-    } catch (e) {
-      LoggerUtil.log('error occured while sending following message via data channel');
-      LoggerUtil.log(JSON.stringify(jsonMessage));
-    }
-    LoggerUtil.log('sent payload via data channel : ' + JSON.stringify(jsonMessage));
+  sendMessageOnDataChannel(jsonMessage: BaseDataChannelMessage, channel: MediaChannelType): Promise<Boolean> {
+    return new Promise((resolve) => {
+      try {
+        const userContext: UserContext = this.serverContextService.getUserContext(jsonMessage.to);
+        userContext.dataChannel.send(JSON.stringify(jsonMessage));
+      } catch (e) {
+        LoggerUtil.log('error occured while sending following message via data channel');
+        LoggerUtil.log(JSON.stringify(jsonMessage));
+        resolve(false);
+      }
+      LoggerUtil.log('sent payload via data channel : ' + JSON.stringify(jsonMessage));
+      resolve(true);
+    });
   }
 }

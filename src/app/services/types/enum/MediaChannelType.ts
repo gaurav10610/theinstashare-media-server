@@ -4,5 +4,8 @@ export enum MediaChannelType {
     TEXT = 'text',
     FILE = 'file',
     SOUND = 'sound',
-    SCREEN = 'screen'
+    SCREEN = 'screen',
+    CONNECTION = 'connection',
+    SIGNALING = 'signal',
+    MESSAGE_ACKNOWLEDGEMENT = 'msgack'
 }

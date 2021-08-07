@@ -1,5 +1,6 @@
 import { SignalingMessageType } from '../enum/SignalingMessageType';
 import { MediaChannelType } from '../enum/MediaChannelType';
+import { UserType } from '../enum/UserType';
 
 export interface BaseSignalingMessage {
     //username of the sender
@@ -20,4 +21,10 @@ export interface BaseSignalingMessage {
 
     // media channel i.e - 'audio', 'video' or 'text'
     channel: MediaChannelType;
+
+    //user group
+    userGroup?: String;
+
+    //user type
+    userType?: UserType;
 }
