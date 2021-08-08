@@ -14,6 +14,9 @@ import { MediaChannelType } from '../types/enum/MediaChannelType';
 import { CoreDataChannelService } from '../data-channel/core-data-channel.service';
 import { WebRTCEventType } from '../../services/types/enum/WebRTCEventType';
 import { WebRTCEventSignalingMessage } from '../types/signaling/WebRTCEventSignalingMessage';
+import { CoreServerUtilityService } from '../util/core-server-utility.service';
+import { DataChannelMessageStatusType } from '../types/enum/DataChannelMessageStatusType';
+import { AnswerSignalingMessage } from '../types/signaling/AnswerSignalingMessage';
 
 @Injectable({
     providedIn: 'root'
@@ -23,8 +26,15 @@ export class MediaServerWebrtcService {
     constructor(
         private serverContextService: ServerContextService,
         private coreWebrtcService: CoreWebrtcService,
-        private coreDataChannelService: CoreDataChannelService
+        private coreDataChannelService: CoreDataChannelService,
+        private coreServerUtilityService: CoreServerUtilityService
     ) { }
+
+    /**
+     * 
+     * on router function from app component
+     */
+    onRouterMessageFunction: any;
 
     /**
      * 
@@ -76,41 +86,43 @@ export class MediaServerWebrtcService {
                      * 
                      * create the offer for the peer connection and send it to other peer
                      */
-                    if (offerMessage === undefined) {
-                        peerConnection.createOffer().then((offer: any) => {
+                    if (offerSignalingMessage === undefined) {
+                        peerConnection.createOffer().then((offer: RTCSessionDescriptionInit) => {
                             peerConnection.setLocalDescription(offer);
 
+                            const offerSignalingPayload: OfferSignalingMessage = {
+                                from: this.serverContextService.servername,
+                                to: username,
+                                channel: MediaChannelType.CONNECTION,
+                                type: SignalingMessageType.OFFER,
+                                offer: offer
+                            }
                             /**
                              * 
                              * send the offer payload
                              */
-                            this.coreDataChannelService.sendPayload({
-                                from: this.userContextService.username,
-                                to: username,
-                                channel: AppConstants.CONNECTION,
-                                type: AppConstants.OFFER,
-                                offer: offer
-                            });
+                            this.coreDataChannelService.sendPayload(offerSignalingPayload);
+
                         }).catch((error) => {
                             LoggerUtil.log(error);
                             reject('There is an error while generating offer on peer connection');
                         });
                     } else {
-                        peerConnection.setRemoteDescription(new RTCSessionDescription(offerMessage.offer));
-                        peerConnection.createAnswer().then((answer: any) => {
+                        peerConnection.setRemoteDescription(new RTCSessionDescription(offerSignalingMessage.offer));
+                        peerConnection.createAnswer().then((answer: RTCSessionDescriptionInit) => {
                             peerConnection.setLocalDescription(answer);
-
+                            const answerSignalingPayload: AnswerSignalingMessage = {
+                                from: this.serverContextService.servername,
+                                to: username,
+                                channel: MediaChannelType.CONNECTION,
+                                type: SignalingMessageType.ANSWER,
+                                answer: answer
+                            }
                             /**
                              * 
                              * send the answer payload
                              */
-                            this.coreDataChannelService.sendPayload({
-                                from: this.userContextService.username,
-                                to: username,
-                                channel: AppConstants.CONNECTION,
-                                type: AppConstants.ANSWER,
-                                answer: answer
-                            });
+                            this.coreDataChannelService.sendPayload(answerSignalingPayload);
                         }).catch((error) => {
                             LoggerUtil.log('there is an error while generating answer');
                             reject(error);
@@ -398,24 +410,14 @@ export class MediaServerWebrtcService {
         switch (message.type) {
 
             //handle signaling messages
-            //@TODO handle it here
             case MediaChannelType.SIGNALING:
-                //this.talkWindowOnRouterMessageFn(message.message);
-                break;
-
-            //handle message acknowledgement
-            //@TODO not needed handling in media serveras of now
-            case MediaChannelType.MESSAGE_ACKNOWLEDGEMENT:
-                //this.appUtilService.updateChatMessageStatus(message);
+                this.onRouterMessageFunction(message.message);
                 break;
 
             //handle received text data messages
             case MediaChannelType.TEXT:
-                message.sent = false;
-                const messageStatus: string = await this.talkWindowUpdateChatMessagesFn(message);
-                if (messageStatus !== AppConstants.CHAT_MESSAGE_STATUS.NOT_APPLICABLE) {
-                    this.appUtilService.sendMessageAcknowledgement(message, messageStatus, message.type);
-                }
+                this.coreServerUtilityService.sendMessageAcknowledgement(message,
+                    DataChannelMessageStatusType.SEEN, MediaChannelType.TEXT);
                 break;
 
             default:

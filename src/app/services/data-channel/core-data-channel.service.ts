@@ -8,7 +8,7 @@ import { CoreServerUtilityService } from '../util/core-server-utility.service';
 import { MediaChannelType } from '../types/enum/MediaChannelType';
 import { UserContext } from '../types/UserContext';
 import { SignalingMessageType } from '../types/enum/SignalingMessageType';
-import { BaseDataChannelMessage } from '../types/BaseDataChannelMessage';
+import { BaseDataChannelMessage } from '../types/datachannel/BaseDataChannelMessage';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +17,7 @@ export class CoreDataChannelService {
 
   constructor(
     private serverContextService: ServerContextService,
-    private coreAppUtilService: CoreServerUtilityService,
+    private coreServerUtilService: CoreServerUtilityService,
     private signalingService: SignalingService,
   ) { }
 
@@ -39,13 +39,15 @@ export class CoreDataChannelService {
      * 
      * @TODO see if this can be removed
      */
-    if (this.coreAppUtilService.isDataChannelConnected(userContext)) {
+    if (this.coreServerUtilService.isDataChannelConnected(userContext)) {
       signalingMessage.via = ServerConstants.DATACHANNEL;
       this.sendMessageOnDataChannel({
+        id: MediaChannelType.SIGNALING + '-' + this.coreServerUtilService.generateIdentifier(),
         from: signalingMessage.from,
         to: signalingMessage.to,
         type: MediaChannelType.SIGNALING,
-        message: signalingMessage
+        message: signalingMessage,
+        username: signalingMessage.from
       }, MediaChannelType.TEXT);
     } else {
 

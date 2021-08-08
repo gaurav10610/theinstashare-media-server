@@ -5,7 +5,10 @@ import { UserContext } from '../types/UserContext';
 import { ConnectionStatesType } from '../types/enum/ConnectionStatesType';
 import { ServerContextService } from '../context/server-context.service';
 import { CoreDataChannelService } from '../data-channel/core-data-channel.service';
-import { BaseDataChannelMessage } from '../types/BaseDataChannelMessage';
+import { BaseDataChannelMessage } from '../types/datachannel/BaseDataChannelMessage';
+import { DataChannelMessageStatusType } from '../types/enum/DataChannelMessageStatusType';
+import { AcknowledgementDataChannelMessage } from '../types/datachannel/AcknowledgementDataChannelMessage';
+import { LoggerUtil } from '../logging/LoggerUtil';
 
 @Injectable({
   providedIn: 'root'
@@ -28,12 +31,11 @@ export class CoreServerUtilityService {
    * @param channel media type for the data channel i.e the type of data being
    * relayed on this data channel
    *
-   * @TODO add a new contract for acknowledgement afterwards for type checking
    */
-  async sendMessageAcknowledgement(message: BaseDataChannelMessage, messageStatus: string, channel: MediaChannelType) {
+  async sendMessageAcknowledgement(message: BaseDataChannelMessage, messageStatus: DataChannelMessageStatusType, channel: MediaChannelType) {
     const ackId: Number = await this.generateIdentifier();
-    const isAckSent: Boolean = await this.coreDataChannelService.sendMessageOnDataChannel({
-      id: String(ackId),
+    const acknowledgementMessage: AcknowledgementDataChannelMessage = {
+      id: ackId,
       status: messageStatus,
       username: this.serverContextService.servername,
       type: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT,
@@ -41,16 +43,16 @@ export class CoreServerUtilityService {
       messageType: message.type,
       messageId: message.id,
       to: message.username,
-      from:this.serverContextService.servername
-    }, channel);
+      from: this.serverContextService.servername,
+      message: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT // not used anywhere
+    }
+    const isAckSent: Boolean = await this.coreDataChannelService.sendMessageOnDataChannel(acknowledgementMessage, channel);
 
-    if (isAckSent) {
-      if (message.id) {
-        LoggerUtil.log('acknowledgement sent for message with id: ' + message.id + ' from '
-          + message[AppConstants.USERNAME]);
-      } else {
-        LoggerUtil.log('error while sending acknowledgement for: ' + JSON.stringify(message));
-      }
+    if (isAckSent && message.id) {
+      LoggerUtil.log('acknowledgement sent for message with id: ' + message.id + ' from '
+        + message.username);
+    } else {
+      LoggerUtil.log('error while sending acknowledgement for: ' + JSON.stringify(message));
     }
   }
 

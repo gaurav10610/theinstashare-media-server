@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { ElectronService } from 'ngx-electron';
 import { SignalingMessageType } from './services/types/enum/SignalingMessageType';
@@ -11,28 +11,46 @@ import { CandidateSignalingMessage } from './services/types/signaling/CandidateS
 import { OfferSignalingMessage } from './services/types/signaling/OfferSignalingMessage';
 import { RegisterSignalingMessage } from './services/types/signaling/RegisterSignalingMessage';
 import { CoreWebrtcService } from './services/webrtc/core-webrtc.service';
+import { MediaServerWebrtcService } from './services/webrtc/media-server-webrtc.service';
+import { MediaChannelType } from './services/types/enum/MediaChannelType';
+import { WebRTCEventType } from './services/types/enum/WebRTCEventType';
+import { WebRTCEventSignalingMessage } from './services/types/signaling/WebRTCEventSignalingMessage';
+import { ServerContextService } from './services/context/server-context.service';
+import { UserContext } from './services/types/UserContext';
+import { ConnectionStatesType } from './services/types/enum/ConnectionStatesType';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   constructor(
     private translate: TranslateService,
     private electronService: ElectronService,
     private signalingService: SignalingService,
-    private coreWebrtcService: CoreWebrtcService
+    private coreWebrtcService: CoreWebrtcService,
+    private mediaServerWebrtcService: MediaServerWebrtcService,
+    private serverContextService: ServerContextService
   ) {
     this.translate.setDefaultLang('en');
     LoggerUtil.log(this.electronService.isElectronApp ? 'this is an electron application' : 'this is a web application');
+  }
 
+  ngOnInit(): void {
     const eventsConfig = {
       onopen: this.onRouterConnect.bind(this),
       onreconnect: this.onRouterConnect.bind(this),
       onmessage: this.onRouterMessage.bind(this)
     };
     this.signalingService.registerEventListeners(eventsConfig);
+
+    /**
+     * this is being done just to reuse some code available in this component
+     * within webrtc service
+     *
+     */
+    this.mediaServerWebrtcService.onRouterMessageFunction = this.onRouterMessage.bind(this);
   }
 
   /*
@@ -77,6 +95,10 @@ export class AppComponent {
           // this.handleDisconnectionRequest(signalingMessage);
           break;
 
+        case SignalingMessageType.WEBRTC_EVENT:
+          this.handleWebrtcEvent(signalingMessage);
+          break;
+
         default:
           LoggerUtil.log('received unknown signaling message with type: ' + signalingMessage.type);
       }
@@ -87,11 +109,11 @@ export class AppComponent {
   }
 
   /**
- * handle to handle received messages of type 'register'
- * 
- * @param signalingMessage received signaling message
- * 
- */
+   * handle to handle received messages of type 'register'
+   * 
+   * @param signalingMessage received signaling message
+   * 
+   */
   handleRegister(signalingMessage: RegisterSignalingMessage) {
     return new Promise<void>((resolve) => {
       if (signalingMessage.success) {
@@ -142,5 +164,48 @@ export class AppComponent {
         reject(e);
       }
     });
+  }
+
+  /**
+   * 
+   * this will handle webrtc events 
+   * 
+   * @param signalingMessage received signaling message 
+   * 
+   */
+  handleWebrtcEvent(signalingMessage: WebRTCEventSignalingMessage) {
+    LoggerUtil.log('handling webrtc event: ' + signalingMessage.event);
+    const userContext: UserContext = this.serverContextService.getUserContext(signalingMessage.from);
+    switch (signalingMessage.event) {
+
+      /**
+       * 
+       * webrtc data channel open event received from remote user's end
+       */
+      case WebRTCEventType.CHANNEL_OPEN:
+        LoggerUtil.log(signalingMessage.channel + ' data channel has been opened with user: ' + signalingMessage.from);
+        userContext.dataChannelConnectionState = ConnectionStatesType.CONNECTED;
+        switch (signalingMessage.channel) {
+
+          case MediaChannelType.TEXT:
+            this.mediaServerWebrtcService.sendQueuedMessagesOnChannel(signalingMessage.from);
+            break;
+        }
+        break;
+
+      case WebRTCEventType.REMOTE_TRACK_RECEIVED:
+
+        /**
+         * 'screen' & 'sound' media streaming is one-way so remove the timeout cleanup job once media stream
+         *  track is received on the other end
+         * 
+         * @TODO implement it afterwards 
+         * 
+         */
+        break;
+
+      default:
+        LoggerUtil.log('unknown webrtc event signaling message received')
+    }
   }
 }
