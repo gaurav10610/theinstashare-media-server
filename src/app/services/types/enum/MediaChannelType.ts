@@ -7,5 +7,6 @@ export enum MediaChannelType {
     SCREEN = 'screen',
     CONNECTION = 'connection',
     SIGNALING = 'signal',
-    MESSAGE_ACKNOWLEDGEMENT = 'msgack'
+    MESSAGE_ACKNOWLEDGEMENT = 'msgack',
+    APPLICATION = 'application'
 }

@@ -9,6 +9,9 @@ import { AnswerSignalingMessage } from '../types/signaling/AnswerSignalingMessag
 import { CandidateSignalingMessage } from '../types/signaling/CandidateSignalingMessage';
 import { OfferSignalingMessage } from '../types/signaling/OfferSignalingMessage';
 import { ConnectionStatesType } from '../types/enum/ConnectionStatesType';
+import { CoreServerUtilityService } from '../util/core-server-utility.service';
+import { MediaChannelType } from '../types/enum/MediaChannelType';
+import { SignalingMessageType } from '../types/enum/SignalingMessageType';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +19,8 @@ import { ConnectionStatesType } from '../types/enum/ConnectionStatesType';
 export class CoreWebrtcService {
 
   constructor(
-    private serverContextService: ServerContextService
+    private serverContextService: ServerContextService,
+    private coreServerUtilityService: CoreServerUtilityService
   ) { }
 
   /**
@@ -77,6 +81,51 @@ export class CoreWebrtcService {
       const peerConnection: RTCPeerConnection = this.serverContextService.getUserContext(signalingMessage.from).connection;
       peerConnection.addIceCandidate(new RTCIceCandidate(signalingMessage.candidate));
       resolve();
+    });
+  }
+
+
+  /**
+   * this will generate appropriate answer on provided webrtc peer connection on
+   * the basis of supplied media type
+   *
+   * @param offer received webrtc offer
+   *
+   * @param peerConnection webrtc peer connection for which answer has to be generated
+   *
+   * @param mediaChannel webrtc connection's media type for connection means the
+   * type of media data that we will relay on this connection e.g 'text','video'
+   * or 'audio'
+   *
+   * @return a promise with generated answer
+   */
+  generateAnswer(peerConnection: RTCPeerConnection, offer: RTCSessionDescriptionInit, mediaChannel: MediaChannelType) {
+    return new Promise((resolve, reject) => {
+      peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      peerConnection.createAnswer().then(async (newAnswer: RTCSessionDescriptionInit) => {
+
+        /**
+         * before setting local session description on webrtc peer connection, app
+         * will modify the max bitrate that webrtc peer connection can use
+         *
+         */
+        const maxBitrate: Number = this.coreServerUtilityService.getMaxBitrateForSdpModification(mediaChannel);
+        const sdpMediaType: MediaChannelType = this.coreServerUtilityService.getMediaTypeForSdpModification(mediaChannel);
+        const modifiedSdp: String = await this.setMediaBitrate(newAnswer.sdp, sdpMediaType, maxBitrate);
+        const answer: RTCSessionDescription = new RTCSessionDescription({ type: 'answer', sdp: modifiedSdp.valueOf() });
+
+        peerConnection.setLocalDescription(answer);
+        resolve({
+          answerPayload: {
+            type: SignalingMessageType.ANSWER,
+            answer: answer,
+            channel: mediaChannel
+          }
+        });
+      }).catch((error: any) => {
+        LoggerUtil.log('there is an error while generating answer');
+        reject(error);
+      }); // Here ends create answer
     });
   }
 

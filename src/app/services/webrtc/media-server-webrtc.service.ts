@@ -17,6 +17,8 @@ import { WebRTCEventSignalingMessage } from '../types/signaling/WebRTCEventSigna
 import { CoreServerUtilityService } from '../util/core-server-utility.service';
 import { DataChannelMessageStatusType } from '../types/enum/DataChannelMessageStatusType';
 import { AnswerSignalingMessage } from '../types/signaling/AnswerSignalingMessage';
+import { BaseDataChannelMessage } from '../types/datachannel/BaseDataChannelMessage';
+import { AcknowledgementDataChannelMessage } from '../types/datachannel/AcknowledgementDataChannelMessage';
 
 @Injectable({
     providedIn: 'root'
@@ -95,7 +97,8 @@ export class MediaServerWebrtcService {
                                 to: username,
                                 channel: MediaChannelType.CONNECTION,
                                 type: SignalingMessageType.OFFER,
-                                offer: offer
+                                offer: offer,
+                                renegotiate: false
                             }
                             /**
                              * 
@@ -407,6 +410,7 @@ export class MediaServerWebrtcService {
     async onDataChannelMessage(jsonMessage: string) {
         LoggerUtil.log('message received on data channel : ' + jsonMessage);
         const message: any = JSON.parse(jsonMessage);
+        LoggerUtil.log(this.serverContextService.getUserContext(message.from));
         switch (message.type) {
 
             //handle signaling messages
@@ -416,7 +420,7 @@ export class MediaServerWebrtcService {
 
             //handle received text data messages
             case MediaChannelType.TEXT:
-                this.coreServerUtilityService.sendMessageAcknowledgement(message,
+                this.sendMessageAcknowledgement(message,
                     DataChannelMessageStatusType.SEEN, MediaChannelType.TEXT);
                 break;
 
@@ -424,6 +428,42 @@ export class MediaServerWebrtcService {
                 LoggerUtil.log('unknown data channel message');
         }
     }
+
+/**
+   * this will send an acknowledgement for a received message along with a status
+   * like 'seen' or 'delivered'
+   *
+   * @param message received message
+   *
+   * @param messageStatus status of the message
+   *
+   * @param channel media type for the data channel i.e the type of data being
+   * relayed on this data channel
+   *
+   */
+  async sendMessageAcknowledgement(message: BaseDataChannelMessage, messageStatus: DataChannelMessageStatusType, channel: MediaChannelType) {
+    const ackId: Number = await this.coreServerUtilityService.generateIdentifier();
+    const acknowledgementMessage: AcknowledgementDataChannelMessage = {
+      id: ackId,
+      status: messageStatus,
+      username: this.serverContextService.servername,
+      type: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT,
+      time: new Date().getTime(),
+      messageType: message.type,
+      messageId: message.id,
+      to: message.username,
+      from: this.serverContextService.servername,
+      message: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT // not used anywhere
+    }
+    const isAckSent: Boolean = await this.coreDataChannelService.sendMessageOnDataChannel(acknowledgementMessage, channel);
+
+    if (isAckSent && message.id) {
+      LoggerUtil.log('acknowledgement sent for message with id: ' + message.id + ' from '
+        + message.username);
+    } else {
+      LoggerUtil.log('error while sending acknowledgement for: ' + JSON.stringify(message));
+    }
+  }
 
     /**
      * this will handle any webrtc peer connection's disconnect state event

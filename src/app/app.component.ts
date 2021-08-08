@@ -18,6 +18,7 @@ import { WebRTCEventSignalingMessage } from './services/types/signaling/WebRTCEv
 import { ServerContextService } from './services/context/server-context.service';
 import { UserContext } from './services/types/UserContext';
 import { ConnectionStatesType } from './services/types/enum/ConnectionStatesType';
+import { CoreDataChannelService } from './services/data-channel/core-data-channel.service';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +32,8 @@ export class AppComponent implements OnInit {
     private signalingService: SignalingService,
     private coreWebrtcService: CoreWebrtcService,
     private mediaServerWebrtcService: MediaServerWebrtcService,
-    private serverContextService: ServerContextService
+    private serverContextService: ServerContextService,
+    private coreDataChannelService: CoreDataChannelService
   ) {
     this.translate.setDefaultLang('en');
     LoggerUtil.log(this.electronService.isElectronApp ? 'this is an electron application' : 'this is a web application');
@@ -73,7 +75,9 @@ export class AppComponent implements OnInit {
    */
   async onRouterMessage(signalingMessage: any) {
     try {
-      LoggerUtil.log('received message via ' + signalingMessage.via + ': ' + JSON.stringify(signalingMessage));
+      LoggerUtil.log('received message via ' + (signalingMessage.via ? signalingMessage.via : 'signaling router')
+        + ': ' + JSON.stringify(signalingMessage));
+
       switch (signalingMessage.type) {
         case SignalingMessageType.REGISTER:
           await this.handleRegister(<RegisterSignalingMessage>signalingMessage);
@@ -153,11 +157,54 @@ export class AppComponent implements OnInit {
     return new Promise<void>(async (resolve, reject) => {
       try {
         /**
-         * 
-         * @TODO implement it here
-         * 
-         * 
-         */
+          * 
+          * if this offer message is for renegotiating an already established connection
+          * 
+          */
+        if (signalingMessage.renegotiate) {
+
+          const peerConnection: RTCPeerConnection = this.serverContextService.getUserContext(signalingMessage.from).connection;
+
+          if (signalingMessage.seekReturnTracks) {
+            /**
+             * 
+             * @TODO handle offer for media tracks here
+             */
+          } else {
+            /**
+             * handle the received webrtc offer 'sdp', set the remote description and
+             * generate the answer sebsequently for sending it to the other user
+             *
+             * 'answerContainer' will contain the generated answer sdp and few other
+             * properties which app utilizes to compose an answer signaling message
+             * to be sent to other user
+             *
+             */
+            const answerContainer: any = await this.coreWebrtcService
+              .generateAnswer(peerConnection, signalingMessage.offer, signalingMessage.channel);
+
+            /**
+             * send the composed 'answer' signaling message to the other user from whom
+             * we've received the offer message
+             *
+             */
+            const answerSignalingPayload: AnswerSignalingMessage = {
+              type: SignalingMessageType.ANSWER,
+              answer: answerContainer.answerPayload.answer,
+              channel: answerContainer.answerPayload.channel,
+              from: this.serverContextService.servername,
+              to: signalingMessage.from
+            }
+            this.coreDataChannelService.sendPayload(answerSignalingPayload);
+          }
+        } else {
+
+          /**
+           * 
+           * this will setup a new webrtc connection 
+           */
+          this.mediaServerWebrtcService.setUpWebrtcConnection(signalingMessage.from, signalingMessage);
+        }
         resolve();
       } catch (e) {
         LoggerUtil.log('there is an error while consuming webrtc offer received from ' + signalingMessage.from);

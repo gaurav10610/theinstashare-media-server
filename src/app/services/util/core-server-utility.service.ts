@@ -16,45 +16,7 @@ import { LoggerUtil } from '../logging/LoggerUtil';
 export class CoreServerUtilityService {
 
   constructor(
-    private serverContextService: ServerContextService,
-    private coreDataChannelService: CoreDataChannelService
   ) { }
-
-  /**
-   * this will send an acknowledgement for a received message along with a status
-   * like 'seen' or 'delivered'
-   *
-   * @param message received message
-   *
-   * @param messageStatus status of the message
-   *
-   * @param channel media type for the data channel i.e the type of data being
-   * relayed on this data channel
-   *
-   */
-  async sendMessageAcknowledgement(message: BaseDataChannelMessage, messageStatus: DataChannelMessageStatusType, channel: MediaChannelType) {
-    const ackId: Number = await this.generateIdentifier();
-    const acknowledgementMessage: AcknowledgementDataChannelMessage = {
-      id: ackId,
-      status: messageStatus,
-      username: this.serverContextService.servername,
-      type: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT,
-      time: new Date().getTime(),
-      messageType: message.type,
-      messageId: message.id,
-      to: message.username,
-      from: this.serverContextService.servername,
-      message: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT // not used anywhere
-    }
-    const isAckSent: Boolean = await this.coreDataChannelService.sendMessageOnDataChannel(acknowledgementMessage, channel);
-
-    if (isAckSent && message.id) {
-      LoggerUtil.log('acknowledgement sent for message with id: ' + message.id + ' from '
-        + message.username);
-    } else {
-      LoggerUtil.log('error while sending acknowledgement for: ' + JSON.stringify(message));
-    }
-  }
 
   /**
    * check if there is an open data channel with a user using it's provided webrtc
@@ -143,14 +105,50 @@ export class CoreServerUtilityService {
    * @param channel: media type audio/video/text 
    * 
    */
-  getMediaTypeForSdpModification(channel: String): String {
+  getMediaTypeForSdpModification(channel: MediaChannelType): MediaChannelType {
     if (channel === MediaChannelType.VIDEO || channel === MediaChannelType.SCREEN) {
       return MediaChannelType.VIDEO;
     } else if (channel === MediaChannelType.FILE || channel === MediaChannelType.TEXT) {
-      return ServerConstants.APPLICATION;
+      return MediaChannelType.APPLICATION;
     } else if (channel === MediaChannelType.AUDIO || channel === MediaChannelType.SOUND) {
       return MediaChannelType.AUDIO;
     }
+  }
+
+  /**
+   * this will return the max bitrate to configure in the SDP
+   * 
+   * @param channel: media type audio/video/text 
+   * 
+   * @TODO fix it afterwards
+   * 
+   */
+  getMaxBitrateForSdpModification(channel: MediaChannelType): Number {
+    let bitrate: Number = 10000;
+    // switch (channel) {
+    //   case AppConstants.VIDEO:
+    //     bitrate = AppConstants.MEDIA_BITRATES.VIDEO;
+    //     break;
+    //   case AppConstants.SCREEN:
+    //     bitrate = AppConstants.MEDIA_BITRATES.SCREEN;
+    //     break;
+    //   case AppConstants.AUDIO:
+    //     bitrate = AppConstants.MEDIA_BITRATES.AUDIO
+    //     break;
+    //   case AppConstants.SOUND:
+    //     bitrate = AppConstants.MEDIA_BITRATES.SOUND
+    //     break;
+    //   case AppConstants.FILE:
+    //     bitrate = AppConstants.MEDIA_BITRATES.FILE;
+    //     break;
+    //   case AppConstants.REMOTE_CONTROL:
+    //     bitrate = AppConstants.MEDIA_BITRATES.REMOTE_CONTROL;
+    //     break;
+    //   case AppConstants.TEXT:
+    //     bitrate = AppConstants.MEDIA_BITRATES.DATA;
+    //     break;
+    // }
+    return bitrate;
   }
 
   /**
