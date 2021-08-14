@@ -200,9 +200,7 @@ export class CoreWebrtcService {
    * can use
    *
    * @param sdp webrtc sdp that needed to be updated
-   *
    * @param media type of media for which bitrate has to be set i.e 'audio' or 'video'
-   *
    * @param bitrate max bitrate that to be set
    *
    * @return a promise with updated sdp

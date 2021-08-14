@@ -34,6 +34,16 @@ export class ServerContextService {
   getUserContext(username: String): UserContext {
     return this.usersContext.get(username);
   }
+
+  /**
+   * this will return the userContext
+   * 
+   * @param userGroup: userGroup of the user
+   */
+  getGroupContext(userGroup: String): GroupContext {
+    return this.groupsContext.get(userGroup);
+  }
+
   /**
    * 
    * initialize user context here
@@ -59,5 +69,26 @@ export class ServerContextService {
       msgQueue: new QueueStorage()
     });
     return this.usersContext.get(username);
+  }
+
+  /**
+   * initialize group context here
+   * 
+   * @param userGroup name of the group
+   * @param createdBy username of the user who created the group
+   * 
+   * @returns context of newly created group
+   * 
+   */
+  initializeGroupContext(groupName: String, createdBy: String): GroupContext {
+    this.groupsContext.set(groupName, {
+      groupName: groupName,
+      createdAt: new Date(),
+      createdBy: createdBy,
+      groupAdmin: createdBy,
+      groupMembers: new Map<String, Boolean>(),
+      lastUsedAt: null
+    });
+    return this.groupsContext.get(groupName);
   }
 }

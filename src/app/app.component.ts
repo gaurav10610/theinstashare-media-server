@@ -19,6 +19,7 @@ import { ServerContextService } from './services/context/server-context.service'
 import { UserContext } from './services/types/UserContext';
 import { ConnectionStatesType } from './services/types/enum/ConnectionStatesType';
 import { CoreDataChannelService } from './services/data-channel/core-data-channel.service';
+import { UserGroupService } from './services/user-group/user-group.service';
 
 @Component({
   selector: 'app-root',
@@ -33,7 +34,8 @@ export class AppComponent implements OnInit {
     private coreWebrtcService: CoreWebrtcService,
     private mediaServerWebrtcService: MediaServerWebrtcService,
     private serverContextService: ServerContextService,
-    private coreDataChannelService: CoreDataChannelService
+    private coreDataChannelService: CoreDataChannelService,
+    private userGroupService: UserGroupService
   ) {
     this.translate.setDefaultLang('en');
     LoggerUtil.log(this.electronService.isElectronApp ? 'this is an electron application' : 'this is a web application');
@@ -82,6 +84,14 @@ export class AppComponent implements OnInit {
         case SignalingMessageType.REGISTER:
           await this.handleRegister(<RegisterSignalingMessage>signalingMessage);
           break;
+
+        case SignalingMessageType.CREATE_GROUP:
+          this.userGroupService.handleCreateGroup(signalingMessage);
+          break;
+
+          case SignalingMessageType.REGISTER_USER_IN_GROUP:
+            this.userGroupService.handleUserGroupRegistration(signalingMessage);
+            break;
 
         case SignalingMessageType.OFFER:
           await this.consumeWebrtcOffer(<OfferSignalingMessage>signalingMessage);

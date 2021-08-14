@@ -19,6 +19,7 @@ import { DataChannelMessageStatusType } from '../types/enum/DataChannelMessageSt
 import { AnswerSignalingMessage } from '../types/signaling/AnswerSignalingMessage';
 import { BaseDataChannelMessage } from '../types/datachannel/BaseDataChannelMessage';
 import { AcknowledgementDataChannelMessage } from '../types/datachannel/AcknowledgementDataChannelMessage';
+import { UserGroupService } from '../user-group/user-group.service';
 
 @Injectable({
     providedIn: 'root'
@@ -29,7 +30,8 @@ export class MediaServerWebrtcService {
         private serverContextService: ServerContextService,
         private coreWebrtcService: CoreWebrtcService,
         private coreDataChannelService: CoreDataChannelService,
-        private coreServerUtilityService: CoreServerUtilityService
+        private coreServerUtilityService: CoreServerUtilityService,
+        private userGroupService: UserGroupService
     ) { }
 
     /**
@@ -333,7 +335,6 @@ export class MediaServerWebrtcService {
      */
     registerDataChannelEvents(peerConnection: RTCPeerConnection, userToChat: String) {
         peerConnection.ondatachannel = (event: RTCDataChannelEvent) => {
-
             /**
              * when a remote data channel is received then set it in user's webrtc context
              *
@@ -348,11 +349,11 @@ export class MediaServerWebrtcService {
              * register onmessage listener on received data channel
              *
              */
-            dataChannel.onmessage = (msgEvent: MessageEvent) => {
-                this.onDataChannelMessage(msgEvent.data);
+            dataChannel.onmessage = (messageEvent: MessageEvent) => {
+                this.onDataChannelMessage(messageEvent.data);
             }
 
-            LoggerUtil.log('message listener registered on received ' + channel + ' data channel');
+            LoggerUtil.log('message listener registered on received ' + channel + ' data channel with: ' + userToChat);
 
             /**
              * if this data channel is meant for sending text messages then register
@@ -360,11 +361,11 @@ export class MediaServerWebrtcService {
              *
              */
             dataChannel.onopen = () => {
-                LoggerUtil.log(channel + ' data channel has been opened');
+                LoggerUtil.log(channel + ' data channel has been opened with: ' + userToChat);
 
                 /**
                  * 
-                 * send onopen data channel event message to other peer 
+                 * send channel open webrtc event message to other peer 
                  */
                 const dataChannelWebrtcEvent: WebRTCEventSignalingMessage = {
                     type: SignalingMessageType.WEBRTC_EVENT,
@@ -379,6 +380,17 @@ export class MediaServerWebrtcService {
                 if (channel as MediaChannelType === MediaChannelType.TEXT) {
                     this.sendQueuedMessagesOnChannel(userToChat);
                 }
+            }
+
+            // data channel error event handler
+            dataChannel.onerror = (event: RTCErrorEvent) => {
+                LoggerUtil.log('error occured on ' + channel + ' data channel with: ' + userToChat);
+                LoggerUtil.log(event.error);
+            }
+
+            // data channel close event
+            dataChannel.onclose = (event: Event) => {
+                LoggerUtil.log(channel + ' data channel with ' + userToChat + ' has been closed');
             }
         }
     }
@@ -413,15 +425,20 @@ export class MediaServerWebrtcService {
         LoggerUtil.log(this.serverContextService.getUserContext(message.from));
         switch (message.type) {
 
-            //handle signaling messages
+            // handle signaling messages
             case MediaChannelType.SIGNALING:
                 this.onRouterMessageFunction(message.message);
                 break;
 
-            //handle received text data messages
+            // handle received text data messages
             case MediaChannelType.TEXT:
-                this.sendMessageAcknowledgement(message,
-                    DataChannelMessageStatusType.SEEN, MediaChannelType.TEXT);
+                this.userGroupService.handleGroupTextMessage(message);
+                /**
+                 * 
+                 * @TODO fix it afterwards
+                 */
+                // this.sendMessageAcknowledgement(message,
+                //     DataChannelMessageStatusType.SEEN, MediaChannelType.TEXT);
                 break;
 
             default:
@@ -429,114 +446,88 @@ export class MediaServerWebrtcService {
         }
     }
 
-/**
-   * this will send an acknowledgement for a received message along with a status
-   * like 'seen' or 'delivered'
-   *
-   * @param message received message
-   *
-   * @param messageStatus status of the message
-   *
-   * @param channel media type for the data channel i.e the type of data being
-   * relayed on this data channel
-   *
-   */
-  async sendMessageAcknowledgement(message: BaseDataChannelMessage, messageStatus: DataChannelMessageStatusType, channel: MediaChannelType) {
-    const ackId: Number = await this.coreServerUtilityService.generateIdentifier();
-    const acknowledgementMessage: AcknowledgementDataChannelMessage = {
-      id: ackId,
-      status: messageStatus,
-      username: this.serverContextService.servername,
-      type: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT,
-      time: new Date().getTime(),
-      messageType: message.type,
-      messageId: message.id,
-      to: message.username,
-      from: this.serverContextService.servername,
-      message: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT // not used anywhere
-    }
-    const isAckSent: Boolean = await this.coreDataChannelService.sendMessageOnDataChannel(acknowledgementMessage, channel);
+    /**
+     * this will send an acknowledgement for a received message along with a status
+     * like 'seen' or 'delivered'
+     *
+     * @param message received message
+     *
+     * @param messageStatus status of the message
+     *
+     * @param channel media type for the data channel i.e the type of data being
+     * relayed on this data channel
+     *
+     */
+    async sendMessageAcknowledgement(message: BaseDataChannelMessage, messageStatus: DataChannelMessageStatusType, channel: MediaChannelType) {
+        const ackId: Number = await this.coreServerUtilityService.generateIdentifier();
+        const acknowledgementMessage: AcknowledgementDataChannelMessage = {
+            id: ackId,
+            status: messageStatus,
+            username: this.serverContextService.servername,
+            type: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT,
+            time: new Date().getTime(),
+            messageType: message.type,
+            messageId: message.id,
+            to: message.username,
+            from: this.serverContextService.servername,
+            message: MediaChannelType.MESSAGE_ACKNOWLEDGEMENT // not used anywhere
+        }
+        const isAckSent: Boolean = await this.coreDataChannelService.sendMessageOnDataChannel(acknowledgementMessage, channel);
 
-    if (isAckSent && message.id) {
-      LoggerUtil.log('acknowledgement sent for message with id: ' + message.id + ' from '
-        + message.username);
-    } else {
-      LoggerUtil.log('error while sending acknowledgement for: ' + JSON.stringify(message));
+        if (isAckSent && message.id) {
+            LoggerUtil.log('acknowledgement sent for message with id: ' + message.id + ' from '
+                + message.username);
+        } else {
+            LoggerUtil.log('error while sending acknowledgement for: ' + JSON.stringify(message));
+        }
     }
-  }
 
     /**
      * this will handle any webrtc peer connection's disconnect state event
      *
      * @param username username of the user with whom this connection was connected
-     * 
      * @TODO implement it afterwards
-     *
      * @return a promise
+     * 
      */
     webrtcConnectionDisconnectHandler(username: String) {
         return new Promise<void>((resolve) => {
-            // LoggerUtil.log('handling webrtc connection disconnect for ' + username);
-            // const webrtcContext: any = this.userContextService.getUserWebrtcContext(username);
+            const userContext: UserContext = this.serverContextService.getUserContext(username);
+            if (userContext) {
+                this.serverContextService.usersContext.delete(username);
+                this.coreWebrtcService.cleanDataChannel(userContext.dataChannel);
+                this.coreWebrtcService.cleanRTCPeerConnection(userContext.connection);
 
-            // /**
-            //  * remove the disconnect listener from peer connection
-            //  */
-
-            // webrtcContext[AppConstants.CONNECTION].onconnectionstatechange = null;
-            // webrtcContext[AppConstants.RECONNECT] = false;
-
-            // /**
-            //  * clear the media stream request context
-            //  */
-            // this.talkWindowContextService.mediaStreamRequestContext[AppConstants.USERNAME] = undefined;
-            // this.talkWindowContextService.mediaStreamRequestContext[AppConstants.CHANNEL] = undefined;
-            // this.talkWindowContextService.remoteAccessContext[AppConstants.USERNAME] = undefined;
-
-            // /**
-            //  * if popup context has been supplied then add it in popup context and register
-            //  * a timeout job to remove the modal popup from UI after the specified time
-            //  *
-            //  */
-            // if (popupContexts) {
-            //     popupContexts.forEach((popupContext: any) => {
-            //         this.appUtilService.addPopupContext(popupContext);
-            //         setTimeout(() => { this.appUtilService.removePopupContext([popupContext.type]); }, AppConstants.CALL_DISCONNECT_POPUP_TIMEOUT);
-            //     });
-            // }
-
-            // const mediaContext: any = webrtcContext[AppConstants.MEDIA_CONTEXT];
-
-            // /**
-            //  * 
-            //  * iterate whole media context and clean channel context for all the open channels 
-            //  */
-            // Object.keys(mediaContext).forEach(channel => {
-
-            //     /**
-            //      * 
-            //      * choose appropriate clean up routine for each open channel 
-            //      */
-            //     if (this.coreAppUtilService.isDataChannel(channel)) {
-            //         this.cleanDataChannelContext(channel, mediaContext[channel]);
-            //         delete webrtcContext[AppConstants.MESSAGE_QUEUE];
-            //         delete webrtcContext[AppConstants.FILE_QUEUE];
-            //     } else if (this.coreAppUtilService.isMediaChannel(channel)) {
-
-            //         // remove the track from peer connection
-            //         if (mediaContext[channel][AppConstants.TRACK_SENDER]) {
-            //             webrtcContext[AppConstants.CONNECTION].removeTrack(mediaContext[channel][AppConstants.TRACK_SENDER]);
-            //         }
-            //         this.cleanMediaStreamContext(channel, mediaContext[channel]);
-            //     }
-            // });
-
-            // //make media context empty
-            // webrtcContext[AppConstants.MEDIA_CONTEXT] = {};
-            // this.coreWebrtcService.cleanRTCPeerConnection(webrtcContext[AppConstants.CONNECTION]);
-            // webrtcContext[AppConstants.CONNECTION] = undefined;
-            // webrtcContext[AppConstants.CONNECTION_STATE] = AppConstants.CONNECTION_STATES.NOT_CONNECTED;
+                // handle disconnection of a user if he/she is member of a group
+                if (userContext.userGroup) {
+                }
+            }
             resolve();
+        });
+    }
+
+    /**
+     * 
+     * this will handle the disconnection of a group member
+     * 
+     * @param userGroup group name of the disconnected user
+     * @param username username of the disconnected user
+     * @returns a void promise
+     */
+    groupMemberDisconnectionHandler(userGroup: String, username: String): Promise<void> {
+        return new Promise((resolve, reject) => {
+            try {
+                LoggerUtil.log('handling group member disconnection for group: ' + userGroup + ' and username: ' + username);
+
+                /**
+                 * @TODO handle group member disconnection here
+                 * 
+                 */
+                resolve();
+            } catch (error) {
+                LoggerUtil.log('error encountered while handling group member disconnection: ' + username);
+                reject(error)
+            }
         });
     }
 }

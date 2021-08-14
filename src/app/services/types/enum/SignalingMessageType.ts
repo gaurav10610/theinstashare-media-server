@@ -5,5 +5,7 @@ export enum SignalingMessageType {
     CANDIDATE = 'candidate',
     DISCONNECT = 'disconnect',
     SIGNALING = 'signal',
-    WEBRTC_EVENT = 'rtcEvent'
+    WEBRTC_EVENT = 'rtcEvent',
+    CREATE_GROUP = 'create-group',
+    REGISTER_USER_IN_GROUP = 'user-group-register'
 }

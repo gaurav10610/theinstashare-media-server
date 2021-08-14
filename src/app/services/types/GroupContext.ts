@@ -10,4 +10,10 @@ export interface GroupContext {
 
     //last used timestamp - when last member disconects
     lastUsedAt: Date;
+
+    // contains username of the user who created the group
+    createdBy: String;
+
+    // contains username of the admin user
+    groupAdmin:String;
 }
