@@ -28,21 +28,20 @@ export class UserGroupService {
         const userContext: UserContext = this.serverContextService.getUserContext(message.username);
         if (userContext.userGroup) {
             const groupContext: GroupContext = this.serverContextService.getGroupContext(userContext.userGroup);
-            LoggerUtil.log(groupContext);
 
             // iterate all users from the group and 
             groupContext.groupMembers.forEach((status, username) => {
                 if (status && username !== message.from) {
-                    // update recipient to send this message to other users in the group
-                    message.to = username;
-                    /**
-                     * 
-                     * @TODO refactor it afterwards
-                     * 
-                     */
-                    message.username = 'media-server';
-                    message.from = 'media-server';
-                    this.coreDataChannelService.sendMessageOnDataChannel(message, message.type);
+                    LoggerUtil.log(username + '======' + message.from);
+                    const dataChannelMessage: BaseDataChannelMessage = {
+                        to: username,
+                        id: message.id,
+                        message: message.message,
+                        type: message.type,
+                        username: 'media-server', //@TODO refactor it afterwards
+                        from: 'media-server' //@TODO refactor it afterwards
+                    }
+                    this.coreDataChannelService.sendMessageOnDataChannel(dataChannelMessage, message.type);
                 }
             });
         }
@@ -68,16 +67,21 @@ export class UserGroupService {
     handleUserGroupRegistration(signalingMessage: BaseSignalingMessage): void {
         LoggerUtil.log('handling request for registering ' + signalingMessage.from + ' in ' + signalingMessage.userGroup);
         if (this.serverContextService.usersContext.has(signalingMessage.from)) {
-            /**
-             * if user have an active connection with media server then
-             * 
-             * 1. add user in corresponding group context
-             * 
-             * 2. set user group name in user's context as well
-             */
-            this.serverContextService.groupsContext.get(signalingMessage.userGroup)
-                .groupMembers.set(signalingMessage.from, true);
-            this.serverContextService.getUserContext(signalingMessage.from).userGroup = signalingMessage.userGroup;
+            if (this.serverContextService.groupsContext.has(signalingMessage.userGroup)) {
+                /**
+                 * if user have an active connection with media server && group exists then
+                 * 
+                 * 1. add user in corresponding group context
+                 * 
+                 * 2. set user group name in user's context as well
+                 */
+                this.serverContextService.groupsContext.get(signalingMessage.userGroup)
+                    .groupMembers.set(signalingMessage.from, true);
+                this.serverContextService.getUserContext(signalingMessage.from).userGroup = signalingMessage.userGroup;
+            } else {
+                LoggerUtil.log('user ' + signalingMessage.from + ' can not be added in group ' + signalingMessage.userGroup
+                    + ' as group does exist on the media server');
+            }
         } else {
             LoggerUtil.log('user ' + signalingMessage.from + ' can not be added in group ' + signalingMessage.userGroup
                 + ' as user does not have an active connection with the media server');

@@ -422,7 +422,6 @@ export class MediaServerWebrtcService {
     async onDataChannelMessage(jsonMessage: string) {
         LoggerUtil.log('message received on data channel : ' + jsonMessage);
         const message: any = JSON.parse(jsonMessage);
-        LoggerUtil.log(this.serverContextService.getUserContext(message.from));
         switch (message.type) {
 
             // handle signaling messages
