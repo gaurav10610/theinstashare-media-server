@@ -1,0 +1,10 @@
+{
+  "name": "theinstashare-media-server",
+  "version": "1.0.0",
+  "main": "main.js",
+  "private": true,
+  "dependencies": {
+    "ngx-electron": "2.2.0",
+    "@electron/remote": "1.0.4"
+  }
+}
