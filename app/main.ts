@@ -2,9 +2,9 @@ import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as url from 'url';
-
-// Initialize remote module
-require('@electron/remote/main').initialize();
+import { IpcMessageService } from './ipc/ipc.message.service';
+import { GroupController } from './api/controller/group.controller';
+import { GroupService } from './api/service/group.service';
 
 let win: BrowserWindow = null;
 const args = process.argv.slice(1),
@@ -25,10 +25,10 @@ function createWindow(): BrowserWindow {
       nodeIntegration: true,
       allowRunningInsecureContent: (serve) ? true : false,
       contextIsolation: false,  // false if you want to run 2e2 test with Spectron
-      enableRemoteModule : true // true if you want to run 2e2 test  with Spectron or use remote module in renderer context (ie. Angular)
+      enableRemoteModule: false // true if you want to run 2e2 test  with Spectron or use remote module in renderer context (ie. Angular)
     },
   });
-  
+
 
   if (serve) {
     win.webContents.openDevTools();
@@ -41,7 +41,7 @@ function createWindow(): BrowserWindow {
     let pathIndex = './index.html';
 
     if (fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
-       // Path when running electron in local folder
+      // Path when running electron in local folder
       pathIndex = '../dist/index.html';
     }
 
@@ -68,7 +68,11 @@ try {
   // initialization and is ready to create browser windows.
   // Some APIs can only be used after this event occurs.
   // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
-  app.on('ready', () => setTimeout(createWindow, 400));
+  app.on('ready', () => setTimeout(() => {
+    const ipcMessageHandler: IpcMessageService = new IpcMessageService(createWindow());
+    const groupService: GroupService = new GroupService(ipcMessageHandler);
+    const groupController: GroupController = new GroupController(groupService);
+  }, 400));
 
   // Quit when all windows are closed.
   app.on('window-all-closed', () => {
@@ -83,7 +87,9 @@ try {
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (win === null) {
-      createWindow();
+      const ipcMessageHandler: IpcMessageService = new IpcMessageService(createWindow());
+      const groupService: GroupService = new GroupService(ipcMessageHandler);
+      const groupController: GroupController = new GroupController(groupService);
     }
   });
 

@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { ElectronService } from 'ngx-electron';
 import { SignalingMessageType } from './services/types/enum/SignalingMessageType';
 import { LoggerUtil } from './services/logging/LoggerUtil';
 import { ServerConstants } from './services/ServerConstants';
@@ -20,6 +19,8 @@ import { UserContext } from './services/types/UserContext';
 import { ConnectionStatesType } from './services/types/enum/ConnectionStatesType';
 import { CoreDataChannelService } from './services/data-channel/core-data-channel.service';
 import { UserGroupService } from './services/user-group/user-group.service';
+import { NativeElectronService } from './services/core/electron.service';
+import { IpcRendererEvent } from 'electron';
 
 @Component({
   selector: 'app-root',
@@ -29,16 +30,17 @@ import { UserGroupService } from './services/user-group/user-group.service';
 export class AppComponent implements OnInit {
   constructor(
     private translate: TranslateService,
-    private electronService: ElectronService,
     private signalingService: SignalingService,
     private coreWebrtcService: CoreWebrtcService,
     private mediaServerWebrtcService: MediaServerWebrtcService,
     private serverContextService: ServerContextService,
     private coreDataChannelService: CoreDataChannelService,
-    private userGroupService: UserGroupService
+    private userGroupService: UserGroupService,
+    private nativeElectronService: NativeElectronService
   ) {
     this.translate.setDefaultLang('en');
-    LoggerUtil.log(this.electronService.isElectronApp ? 'this is an electron application' : 'this is a web application');
+    this.nativeElectronService
+      .registerMainProcessMessageListener('ipcMessage', this.onMainProcessMessage.bind(this));
   }
 
   ngOnInit(): void {
@@ -89,9 +91,9 @@ export class AppComponent implements OnInit {
           this.userGroupService.handleCreateGroup(signalingMessage);
           break;
 
-          case SignalingMessageType.REGISTER_USER_IN_GROUP:
-            this.userGroupService.handleUserGroupRegistration(signalingMessage);
-            break;
+        case SignalingMessageType.REGISTER_USER_IN_GROUP:
+          this.userGroupService.handleUserGroupRegistration(signalingMessage);
+          break;
 
         case SignalingMessageType.OFFER:
           await this.consumeWebrtcOffer(<OfferSignalingMessage>signalingMessage);
@@ -264,5 +266,14 @@ export class AppComponent implements OnInit {
       default:
         LoggerUtil.log('unknown webrtc event signaling message received')
     }
+  }
+
+  /**
+   * handle messages received from electron main process
+   * @param event 
+   * @param args 
+   */
+  onMainProcessMessage(event: IpcRendererEvent, args: any) {
+    LoggerUtil.log(`received message from electron main process: ${JSON.stringify(args)}`);
   }
 }

@@ -6,6 +6,10 @@ export class ServerConstants {
 
   public static SERVER_NAME = 'media-server';
 
+  public static EXPRESS_PORT = 9696;
+
+  public static API_BASE_URL = "/instashare/media-server/";
+
   public static DATACHANNEL = 'dataChannel';
 
   public static WEBRTC_EVENTS = {
