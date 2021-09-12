@@ -5,6 +5,7 @@ import * as url from 'url';
 import { IpcMessageService } from './ipc/ipc.message.service';
 import { GroupController } from './api/controller/group.controller';
 import { GroupService } from './api/service/group.service';
+import { MediaServerContext } from './context/media.server.context';
 
 let win: BrowserWindow = null;
 const args = process.argv.slice(1),
@@ -69,8 +70,9 @@ try {
   // Some APIs can only be used after this event occurs.
   // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
   app.on('ready', () => setTimeout(() => {
-    const ipcMessageHandler: IpcMessageService = new IpcMessageService(createWindow());
-    const groupService: GroupService = new GroupService(ipcMessageHandler);
+    const mediaServerContext: MediaServerContext = new MediaServerContext();
+    const ipcMessageHandler: IpcMessageService = new IpcMessageService(createWindow(), mediaServerContext);
+    const groupService: GroupService = new GroupService(ipcMessageHandler, mediaServerContext);
     const groupController: GroupController = new GroupController(groupService);
   }, 400));
 
@@ -87,8 +89,9 @@ try {
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (win === null) {
-      const ipcMessageHandler: IpcMessageService = new IpcMessageService(createWindow());
-      const groupService: GroupService = new GroupService(ipcMessageHandler);
+      const mediaServerContext: MediaServerContext = new MediaServerContext();
+      const ipcMessageHandler: IpcMessageService = new IpcMessageService(createWindow(), mediaServerContext);
+      const groupService: GroupService = new GroupService(ipcMessageHandler, mediaServerContext);
       const groupController: GroupController = new GroupController(groupService);
     }
   });

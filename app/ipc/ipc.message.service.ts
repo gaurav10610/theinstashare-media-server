@@ -1,9 +1,13 @@
 import { IpcMainEvent, ipcMain, BrowserWindow } from "electron";
+import { MediaServerContext } from "../context/media.server.context";
 import { LoggerUtil } from "../logging/logger";
 
 export class IpcMessageService {
 
-    constructor(private window: BrowserWindow) {
+    constructor(
+        private window: BrowserWindow,
+        private mediaServerContext: MediaServerContext
+    ) {
         LoggerUtil.log('initialized ipc mechanism in electron main process');
         this.init();
     }

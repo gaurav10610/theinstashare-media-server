@@ -1,7 +1,7 @@
 import { LoggerUtil } from '../../logging/logger';
 import { GroupService } from '../service/group.service';
 import { ServerConstants } from '../../constants/server.main.constants';
-import { environment } from '../../environments/environment.dev';
+import { environment } from '../../environments/environment';
 
 export class GroupController {
 
@@ -66,7 +66,11 @@ export class GroupController {
      * @param app instance of express
      */
     private registerHandlers(app: any) {
-        app.get(`${ServerConstants.API_BASE_URL}dummy`, this.groupService.handleDummyRequest.bind(this.groupService));
+        app.get(`${ServerConstants.API_BASE_URL}user`, this.groupService.getUserInfo.bind(this.groupService));
+
+        app.get(`${ServerConstants.API_BASE_URL}group`, this.groupService.getUserInfo.bind(this.groupService));
+
+        app.post(`${ServerConstants.API_BASE_URL}group`, this.groupService.createGroup.bind(this.groupService));
     }
 
     /**
