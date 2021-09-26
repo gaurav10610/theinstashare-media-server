@@ -1,9 +1,9 @@
 import { Injectable } from "@angular/core";
 import { ServerContextService } from "../context/server-context.service";
+import { NativeElectronService } from "../core/electron.service";
 import { CoreDataChannelService } from "../data-channel/core-data-channel.service";
 import { LoggerUtil } from "../logging/LoggerUtil";
 import { BaseDataChannelMessage } from "../types/datachannel/BaseDataChannelMessage";
-import { MediaChannelType } from "../types/enum/MediaChannelType";
 import { GroupContext } from "../types/GroupContext";
 import { BaseSignalingMessage } from "../types/signaling/BaseSignalingMessage";
 import { UserContext } from "../types/UserContext";
@@ -15,7 +15,8 @@ export class UserGroupService {
 
     constructor(
         private serverContextService: ServerContextService,
-        private coreDataChannelService: CoreDataChannelService
+        private coreDataChannelService: CoreDataChannelService,
+        private nativeElectronService: NativeElectronService
     ) { }
 
     /**
@@ -56,6 +57,7 @@ export class UserGroupService {
     handleCreateGroup(signalingMessage: BaseSignalingMessage): void {
         LoggerUtil.log('handling request for creating user group: ' + signalingMessage.userGroup);
         this.serverContextService.initializeGroupContext(signalingMessage.userGroup, signalingMessage.from);
+        this.nativeElectronService.sendMainProcessMessage(signalingMessage);
     }
 
     /**
@@ -78,6 +80,7 @@ export class UserGroupService {
                 this.serverContextService.groupsContext.get(signalingMessage.userGroup)
                     .groupMembers.set(signalingMessage.from, true);
                 this.serverContextService.getUserContext(signalingMessage.from).userGroup = signalingMessage.userGroup;
+                this.nativeElectronService.sendMainProcessMessage(signalingMessage);
             } else {
                 LoggerUtil.log('user ' + signalingMessage.from + ' can not be added in group ' + signalingMessage.userGroup
                     + ' as group does exist on the media server');

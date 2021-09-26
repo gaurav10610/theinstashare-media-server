@@ -39,7 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GroupController = void 0;
 var logger_1 = require("../../logging/logger");
 var server_main_constants_1 = require("../../constants/server.main.constants");
-var environment_dev_1 = require("../../environments/environment.dev");
+var environment_1 = require("../../environments/environment");
 var GroupController = /** @class */ (function () {
     function GroupController(groupService) {
         this.groupService = groupService;
@@ -72,7 +72,7 @@ var GroupController = /** @class */ (function () {
                          * register all handlers
                          */
                         this.registerHandlers(app);
-                        if (!environment_dev_1.environment.production) return [3 /*break*/, 2];
+                        if (!environment_1.environment.production) return [3 /*break*/, 2];
                         logger_1.LoggerUtil.log("starting api server with ssl support");
                         https = require('https');
                         return [4 /*yield*/, this.readServerCertificates('../../ssl/new')];
@@ -108,7 +108,9 @@ var GroupController = /** @class */ (function () {
      * @param app instance of express
      */
     GroupController.prototype.registerHandlers = function (app) {
-        app.get(server_main_constants_1.ServerConstants.API_BASE_URL + "dummy", this.groupService.handleDummyRequest.bind(this.groupService));
+        app.get(server_main_constants_1.ServerConstants.API_BASE_URL + "user", this.groupService.getUserInfo.bind(this.groupService));
+        app.get(server_main_constants_1.ServerConstants.API_BASE_URL + "group", this.groupService.getUserInfo.bind(this.groupService));
+        app.post(server_main_constants_1.ServerConstants.API_BASE_URL + "group", this.groupService.createGroup.bind(this.groupService));
     };
     /**
      * read server certificate and key

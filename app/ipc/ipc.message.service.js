@@ -4,8 +4,9 @@ exports.IpcMessageService = void 0;
 var electron_1 = require("electron");
 var logger_1 = require("../logging/logger");
 var IpcMessageService = /** @class */ (function () {
-    function IpcMessageService(window) {
+    function IpcMessageService(window, mediaServerContext) {
         this.window = window;
+        this.mediaServerContext = mediaServerContext;
         logger_1.LoggerUtil.log('initialized ipc mechanism in electron main process');
         this.init();
     }

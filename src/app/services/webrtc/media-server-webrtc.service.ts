@@ -20,6 +20,7 @@ import { AnswerSignalingMessage } from '../types/signaling/AnswerSignalingMessag
 import { BaseDataChannelMessage } from '../types/datachannel/BaseDataChannelMessage';
 import { AcknowledgementDataChannelMessage } from '../types/datachannel/AcknowledgementDataChannelMessage';
 import { UserGroupService } from '../user-group/user-group.service';
+import { NativeElectronService } from '../core/electron.service';
 
 @Injectable({
     providedIn: 'root'
@@ -31,7 +32,8 @@ export class MediaServerWebrtcService {
         private coreWebrtcService: CoreWebrtcService,
         private coreDataChannelService: CoreDataChannelService,
         private coreServerUtilityService: CoreServerUtilityService,
-        private userGroupService: UserGroupService
+        private userGroupService: UserGroupService,
+        private nativeElectronService: NativeElectronService
     ) { }
 
     /**
@@ -48,7 +50,7 @@ export class MediaServerWebrtcService {
      * 
      *  @param offerMessage this is an optional offer signaling message
      */
-    setUpWebrtcConnection(username: String, offerSignalingMessage?: OfferSignalingMessage) {
+    setUpWebrtcConnection(username: String, offerSignalingMessage?: OfferSignalingMessage): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
             try {
                 LoggerUtil.log('setting up new webrtc connection');
@@ -228,6 +230,10 @@ export class MediaServerWebrtcService {
 
                             // handle the webrtc disconnection here 
                             await this.webrtcConnectionDisconnectHandler(userToChat);
+                            this.nativeElectronService.sendMainProcessMessage({
+                                type: SignalingMessageType.NEW_USER,
+                                connected: false
+                            });
                             break;
 
                         case 'connected':
@@ -355,6 +361,12 @@ export class MediaServerWebrtcService {
 
             LoggerUtil.log('message listener registered on received ' + channel + ' data channel with: ' + userToChat);
 
+            //update main process with new user
+            this.nativeElectronService.sendMainProcessMessage({
+                type: SignalingMessageType.NEW_USER,
+                connected: true
+            });
+
             /**
              * if this data channel is meant for sending text messages then register
              * an onopen listner also which will send any queued text messages
@@ -383,7 +395,7 @@ export class MediaServerWebrtcService {
             }
 
             // data channel error event handler
-            dataChannel.onerror = (event: RTCErrorEvent) => {
+            dataChannel.onerror = (event: any) => {
                 LoggerUtil.log('error occured on ' + channel + ' data channel with: ' + userToChat);
                 LoggerUtil.log(event.error);
             }
@@ -391,6 +403,10 @@ export class MediaServerWebrtcService {
             // data channel close event
             dataChannel.onclose = (event: Event) => {
                 LoggerUtil.log(channel + ' data channel with ' + userToChat + ' has been closed');
+                this.nativeElectronService.sendMainProcessMessage({
+                    type: SignalingMessageType.NEW_USER,
+                    connected: false
+                });
             }
         }
     }

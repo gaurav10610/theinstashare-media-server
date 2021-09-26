@@ -1,4 +1,5 @@
 import { IpcMainEvent, ipcMain, BrowserWindow } from "electron";
+import { SignalingMessageType } from "../../src/app/services/types/enum/SignalingMessageType";
 import { MediaServerContext } from "../context/media.server.context";
 import { LoggerUtil } from "../logging/logger";
 
@@ -26,6 +27,30 @@ export class IpcMessageService {
      */
     onRendererProcessMessage(event: IpcMainEvent, args: any) {
         LoggerUtil.log(`received message from electron renderer process: ${JSON.stringify(args)}`);
+        switch (args.type) {
+            case SignalingMessageType.REGISTER_USER_IN_GROUP:
+                this.mediaServerContext.getUserContext(args.from).userGroup = args.userGroup;
+                this.mediaServerContext.groupsContext.get(args.userGroup)
+                    .groupMembers.set(args.from, true);
+                break;
+
+            case SignalingMessageType.CREATE_GROUP:
+                this.mediaServerContext.initializeGroupContext(args.userGroup, args.from);
+                break;
+
+            case SignalingMessageType.NEW_USER:
+                if (args.connected) {
+                    this.mediaServerContext.initializeUserContext(args.username, args.userType, args.userGroup);
+                } else {
+                    this.mediaServerContext.groupsContext.get(args.userGroup)
+                        .groupMembers.delete(args.username);
+                    this.mediaServerContext.usersContext.delete(args.username);
+                }
+                break;
+
+            default:
+                LoggerUtil.log('unknown message type received from renderer process');
+        }
     }
 
     /**
