@@ -8,5 +8,5 @@ export enum SignalingMessageType {
     WEBRTC_EVENT = 'rtcEvent',
     CREATE_GROUP = 'create-group',
     REGISTER_USER_IN_GROUP = 'user-group-register',
-    NEW_USER = 'new-user'
+    USER = 'user'
 }

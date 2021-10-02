@@ -38,7 +38,7 @@ export class IpcMessageService {
                 this.mediaServerContext.initializeGroupContext(args.userGroup, args.from);
                 break;
 
-            case SignalingMessageType.NEW_USER:
+            case SignalingMessageType.USER:
                 if (args.connected) {
                     this.mediaServerContext.initializeUserContext(args.username, args.userType, args.userGroup);
                 } else {

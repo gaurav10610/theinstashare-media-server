@@ -15,5 +15,5 @@ export interface GroupContext {
     createdBy: String;
 
     // contains username of the admin user
-    groupAdmin:String;
+    groupAdmin: String;
 }

@@ -231,7 +231,7 @@ export class MediaServerWebrtcService {
                             // handle the webrtc disconnection here 
                             await this.webrtcConnectionDisconnectHandler(userToChat);
                             this.nativeElectronService.sendMainProcessMessage({
-                                type: SignalingMessageType.NEW_USER,
+                                type: SignalingMessageType.USER,
                                 connected: false
                             });
                             break;
@@ -363,7 +363,7 @@ export class MediaServerWebrtcService {
 
             //update main process with new user
             this.nativeElectronService.sendMainProcessMessage({
-                type: SignalingMessageType.NEW_USER,
+                type: SignalingMessageType.USER,
                 connected: true
             });
 
@@ -404,7 +404,7 @@ export class MediaServerWebrtcService {
             dataChannel.onclose = (event: Event) => {
                 LoggerUtil.log(channel + ' data channel with ' + userToChat + ' has been closed');
                 this.nativeElectronService.sendMainProcessMessage({
-                    type: SignalingMessageType.NEW_USER,
+                    type: SignalingMessageType.USER,
                     connected: false
                 });
             }

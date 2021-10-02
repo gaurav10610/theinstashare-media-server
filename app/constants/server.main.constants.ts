@@ -8,7 +8,7 @@
   
     public static EXPRESS_PORT = 9696;
   
-    public static API_BASE_URL = "/instashare/media-server/";
+    public static API_BASE_URL = "/instashare/media-server";
   
     public static DATACHANNEL = 'dataChannel';
   

@@ -10,7 +10,7 @@ var ServerConstants = /** @class */ (function () {
     }
     ServerConstants.SERVER_NAME = 'media-server';
     ServerConstants.EXPRESS_PORT = 9696;
-    ServerConstants.API_BASE_URL = "/instashare/media-server/";
+    ServerConstants.API_BASE_URL = "/instashare/media-server";
     ServerConstants.DATACHANNEL = 'dataChannel';
     ServerConstants.WEBRTC_EVENTS = {
         CHANNEL_OPEN: 'channelOpen',

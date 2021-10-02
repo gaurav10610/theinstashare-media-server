@@ -66,11 +66,9 @@ export class GroupController {
      * @param app instance of express
      */
     private registerHandlers(app: any) {
-        app.get(`${ServerConstants.API_BASE_URL}user`, this.groupService.getUserInfo.bind(this.groupService));
+        app.get(`${ServerConstants.API_BASE_URL}/user/:username`, this.groupService.getUserInfo.bind(this.groupService));
 
-        app.get(`${ServerConstants.API_BASE_URL}group`, this.groupService.getUserInfo.bind(this.groupService));
-
-        app.post(`${ServerConstants.API_BASE_URL}group`, this.groupService.createGroup.bind(this.groupService));
+        app.get(`${ServerConstants.API_BASE_URL}/group/:groupname`, this.groupService.getGroupInfo.bind(this.groupService));
     }
 
     /**

@@ -14,13 +14,24 @@ var GroupService = /** @class */ (function () {
      * @param res
      */
     GroupService.prototype.getUserInfo = function (req, res) {
-    };
-    /**
-     * create a new group
-     * @param req
-     * @param res
-     */
-    GroupService.prototype.createGroup = function (req, res) {
+        var username = req.params.username;
+        if (username && this.mediaServerContext.usersContext.has(username)) {
+            var userContext = this.mediaServerContext.usersContext.get(username);
+            res.status(200).send({
+                username: username,
+                userType: userContext.userType,
+                userGroup: userContext.userGroup
+            });
+        }
+        else {
+            res.status(404).send({
+                errors: [
+                    {
+                        message: "resource not found"
+                    }
+                ]
+            });
+        }
     };
     /**
      * enquire group information along with all active users
@@ -28,6 +39,20 @@ var GroupService = /** @class */ (function () {
      * @param res
      */
     GroupService.prototype.getGroupInfo = function (req, res) {
+        var groupName = req.params.groupname;
+        if (groupName && this.mediaServerContext.groupsContext.has(groupName)) {
+            var groupContext = this.mediaServerContext.groupsContext.get(groupName);
+            res.status(200).send(groupContext);
+        }
+        else {
+            res.status(404).send({
+                errors: [
+                    {
+                        message: "resource not found"
+                    }
+                ]
+            });
+        }
     };
     return GroupService;
 }());

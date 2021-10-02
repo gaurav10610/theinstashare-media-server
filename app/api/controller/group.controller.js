@@ -108,9 +108,8 @@ var GroupController = /** @class */ (function () {
      * @param app instance of express
      */
     GroupController.prototype.registerHandlers = function (app) {
-        app.get(server_main_constants_1.ServerConstants.API_BASE_URL + "user", this.groupService.getUserInfo.bind(this.groupService));
-        app.get(server_main_constants_1.ServerConstants.API_BASE_URL + "group", this.groupService.getUserInfo.bind(this.groupService));
-        app.post(server_main_constants_1.ServerConstants.API_BASE_URL + "group", this.groupService.createGroup.bind(this.groupService));
+        app.get(server_main_constants_1.ServerConstants.API_BASE_URL + "/user/:username", this.groupService.getUserInfo.bind(this.groupService));
+        app.get(server_main_constants_1.ServerConstants.API_BASE_URL + "/group/:groupname", this.groupService.getGroupInfo.bind(this.groupService));
     };
     /**
      * read server certificate and key
